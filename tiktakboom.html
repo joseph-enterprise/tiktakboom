@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TIKTAK BOOM</title>
+    
+    <style>
+        body {
+            background-color: #111116;
+            color: white;
+            text-align: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 10px;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #interface { margin-bottom: 10px; }
+        h2, h3 { margin: 5px 0; }
+        
+        #essence-text { color: #3498db; }
+        #coins-text { color: #ffcc00; }
+
+        #game-container {
+            position: relative;
+            width: min(360px, calc(100vw - 20px));
+            aspect-ratio: 360 / 540;
+            margin: 0 auto;
+        }
+
+        canvas {
+            background-color: #22222b;
+            border: 3px solid #ff0055;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
+            display: block;
+            touch-action: none;
+            border-radius: 4px;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        #pause-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #ff0055;
+            color: white;
+            font-size: 18px;
+            padding: 5px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 10;
+            display: none;
+        }
+
+        .modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(17, 17, 22, 0.96);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            border-radius: 4px;
+            box-sizing: border-box;
+            padding: 15px;
+        }
+
+        .hidden { display: none !important; }
+
+        .modal h2 {
+            color: #ff0055;
+            text-shadow: 0 0 10px #ff0055;
+            font-size: 26px;
+            margin-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .modal h2.win-title {
+            color: #2ecc71;
+            text-shadow: 0 0 10px #2ecc71;
+        }
+
+        .btn-menu {
+            width: 220px;
+            padding: 12px;
+            margin: 6px 0;
+            background: #22222b;
+            border: 2px solid #ffcc00;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-menu:active {
+            background: #ffcc00;
+            color: #111;
+            transform: scale(0.98);
+        }
+
+        select.btn-menu {
+            text-align: center;
+            background: #1a1a24;
+        }
+
+        .level-grid, .garage-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            max-height: min(340px, 62%);
+            width: 100%;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .garage-grid {
+            grid-template-columns: repeat(2, 1fr);
+            max-height: min(330px, 60%);
+        }
+
+        .level-btn {
+            background: #1a1a24;
+            border: 2px solid #ffcc00;
+            color: #fff;
+            font-weight: bold;
+            font-size: 13px;
+            padding: 10px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .level-btn.locked {
+            background: #111116;
+            border-color: #444455;
+            color: #666677;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .car-card {
+            background: #1a1a24;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .car-card.owned { border-color: #f39c12; }
+        .car-card.equipped { border-color: #2ecc71; background: rgba(46, 204, 113, 0.1); }
+        .car-card h4 { margin: 2px 0; font-size: 12px; color: #fff; }
+        .car-card p { margin: 2px 0; font-size: 11px; color: #ffcc00; }
+        .car-card .sound-badge { margin: 2px 0; font-size: 10px; color: #3498db; font-style: italic; background: rgba(52, 152, 219, 0.15); padding: 2px 6px; border-radius: 4px; }
+
+        .car-card button {
+            background: #3498db;
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            font-size: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 4px;
+            width: 100%;
+        }
+
+        .car-card.equipped button { background: #2ecc71; cursor: default; }
+
+        .level-grid::-webkit-scrollbar, .garage-grid::-webkit-scrollbar { width: 6px; }
+        .level-grid::-webkit-scrollbar-thumb, .garage-grid::-webkit-scrollbar-thumb { background: #ff0055; border-radius: 3px; }
+
+        label { font-weight: bold; color: #3498db; margin-bottom: 5px; display: block; }
+        
+        .slider-container {
+            width: 220px;
+            margin: 8px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        input[type=range] {
+            width: 100%;
+            accent-color: #ff0055;
+            cursor: pointer;
+        }
+
+        #toast {
+            position: absolute;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 85, 0.92);
+            color: #fff;
+            font-weight: bold;
+            font-size: 13px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            z-index: 40;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s;
+            white-space: nowrap;
+        }
+
+        #toast.show { opacity: 1; }
+
+        #btn-gameover-menu {
+            position: absolute;
+            bottom: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            z-index: 15;
+            border-color: #ff0055;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="interface">
+        <h2><span id="ui-coins-lbl">Pièces</span> : <span id="coins-text">0</span> 🪙</h2>
+        <h3><span id="ui-fuel-lbl">Essence</span> : <span id="essence-text">100</span>%</h3>
+    </div>
+
+    <div id="game-container">
+        <button id="pause-btn">⏸️</button>
+
+        <div id="pause-modal" class="modal hidden">
+            <h2 id="txt-pause-title">PAUSE</h2>
+            <button class="btn-menu" id="btn-resume">Reprendre</button>
+            <button class="btn-menu" id="btn-restart">Recommencer</button>
+            <button class="btn-menu" id="btn-settings">Paramètres</button>
+            <button class="btn-menu" id="btn-main-menu">Menu Principal</button>
+        </div>
+
+        <div id="rules-modal" class="modal hidden">
+            <h2 id="txt-rules-title">RÈGLES DU JEU 📖</h2>
+            <div style="text-align: left; font-size: 13px; background: rgba(0,0,0,0.4); padding: 12px; border: 2px solid #3498db; border-radius: 8px; margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+                <p>📱 <b id="txt-r-accel-t">Accélération :</b> <span id="txt-r-accel-d">Reste appuyé sur l'écran pour avancer.</span></p>
+                <p>⚠️ <b id="txt-r-idle-t">Inactivité :</b> <span id="txt-r-idle-d">Ne reste pas immobile trop longtemps !</span></p>
+                <p>⛽ <b id="txt-r-fuel-t">Essence :</b> <span id="txt-r-fuel-d">Ramasse les bidons 'E' pour ne pas tomber à 0%.</span></p>
+                <p>🏁 <b id="txt-r-goal-t">Objectif :</b> <span id="txt-r-goal-d">Atteins la ligne d'arrivée pour gagner des pièces et débloquer les niveaux suivants !</span></p>
+            </div>
+            <button class="btn-menu" id="btn-rules-next" style="border-color: #2ecc71;">Suivant (Garage) ➔</button>
+            <button class="btn-menu" id="btn-back-rules" style="border-color: #ff0055;">Retour Menu</button>
+        </div>
+
+        <div id="garage-modal" class="modal hidden">
+            <h2 id="txt-garage-title">GARAGE & VOITURES 🚗</h2>
+            <div class="garage-grid" id="garage-grid-container"></div>
+            <button class="btn-menu" id="btn-garage-next" style="margin-top: 8px; border-color: #2ecc71;">Niveaux ➔</button>
+            <button class="btn-menu" id="btn-back-garage" style="margin-top: 6px; border-color: #ff0055;">Retour Menu</button>
+        </div>
+
+        <div id="level-modal" class="modal hidden">
+            <h2 id="txt-level-title">CHOIX DU NIVEAU</h2>
+            <div class="level-grid" id="level-grid-container"></div>
+            <button class="btn-menu" id="btn-back-level" style="margin-top: 12px; border-color: #ff0055;">Retour Menu</button>
+        </div>
+
+        <div id="settings-modal" class="modal hidden">
+            <h2 id="txt-settings-title">Paramètres</h2>
+            
+            <label for="lang-select" id="txt-lang-lbl">Langue :</label>
+            <select id="lang-select" class="btn-menu">
+                <option value="fr">Français 🇫🇷</option>
+                <option value="en">English 🇬🇧</option>
+                <option value="es">Español 🇪🇸</option>
+                <option value="it">Italiano 🇮🇹</option>
+                <option value="tr">Türkçe 🇹🇷</option>
+                <option value="ar">العربية 🇸🇦</option>
+            </select>
+
+            <div class="slider-container">
+                <label for="volume-slider" id="txt-vol-lbl">Volume : <span id="vol-val">50</span>%</label>
+                <input type="range" id="volume-slider" min="0" max="100" value="50">
+            </div>
+
+            <button class="btn-menu" id="btn-back-settings" style="margin-top: 10px; border-color: #ff0055;">Retour</button>
+        </div>
+
+        <div id="win-modal" class="modal hidden">
+            <h2 id="txt-win-title" class="win-title">GAGNÉ !</h2>
+            <h3 style="color:white; margin-bottom:5px;"><span id="txt-win-dist">Distance atteinte</span> : <span id="win-dist-text">100m</span></h3>
+            <h3 style="color:#ffcc00; margin-bottom:15px;"><span id="txt-win-reward">Récompense</span> : +<span id="win-reward-text">0</span> 🪙</h3>
+            <button class="btn-menu" id="btn-goto-levels" style="border-color: #2ecc71;">Menu Niveaux ➔</button>
+            <button class="btn-menu" id="btn-win-restart">Recommencer</button>
+            <button class="btn-menu" id="btn-win-main-menu">Menu Principal</button>
+        </div>
+
+        <button class="btn-menu hidden" id="btn-gameover-menu">Menu Principal</button>
+
+        <div id="toast"></div>
+
+        <canvas id="gameCanvas" width="360" height="540"></canvas>
+    </div>
+
+    <script>
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, radii) {
+                if (typeof radii === 'undefined') radii = 0;
+                if (typeof radii === 'number') radii = [radii];
+                let r = radii[0] || 0;
+                this.beginPath();
+                this.moveTo(x + r, y);
+                this.lineTo(x + w - r, y);
+                this.quadraticCurveTo(x + w, y, x + w, y + r);
+                this.lineTo(x + w, y + h - r);
+                this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                this.lineTo(x + r, y + h);
+                this.quadraticCurveTo(x, y + h, x, y + h - r);
+                this.lineTo(x, y + r);
+                this.quadraticCurveTo(x, y, x + r, y);
+                this.closePath();
+                return this;
+            };
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let currentLang = 'fr';
+
+        function readStored(key, defaultValue, min, max) {
+            const raw = parseFloat(localStorage.getItem(key));
+            if (!Number.isFinite(raw)) return defaultValue;
+            return Math.min(max, Math.max(min, raw));
+        }
+
+        let masterVolume = readStored('tiktakboom_volume', 0.5, 0, 1);
+        document.getElementById('volume-slider').value = masterVolume * 100;
+        document.getElementById('vol-val').innerText = Math.round(masterVolume * 100);
+
+        const i18n = {
+            fr: {
+                fuel: "Essence", coins: "Pièces",
+                pause: "PAUSE", resume: "Reprendre", restart: "Recommencer",
+                settings: "Paramètres", main_menu: "Menu Principal",
+                language: "Langue :", volume: "Volume :", back: "Retour",
+                play_again: "CLIQUE POUR REJOUER",
+                click_to_start_intro: "CLIQUEZ POUR DÉMARRER",
+                win_title: "GAGNÉ !", win_dist: "Objectif atteint",
+                select_level: "CHOIX DU NIVEAU",
+                rules_title: "RÈGLES DU JEU 📖",
+                r_accel_t: "Accélération :", r_accel_d: "Reste appuyé sur l'écran pour avancer.",
+                r_idle_t: "Inactivité :", r_idle_d: "Ne reste pas immobile trop longtemps !",
+                r_fuel_t: "Essence :", r_fuel_d: "Ramasse les bidons 'E' pour ne pas tomber à 0%.",
+                r_goal_t: "Objectif :", r_goal_d: "Atteins la ligne d'arrivée pour gagner des pièces et débloquer les niveaux suivants !",
+                next_garage: "Suivant (Garage) ➔", back_menu: "Retour Menu",
+                garage_title: "GARAGE & VOITURES 🚗", next_levels: "Niveaux ➔",
+                equip: "Équiper", equipped: "Équipé ⭐", model: "Modèle",
+                not_enough: "Pas assez de pièces !", reward: "Récompense",
+                goto_levels: "Menu Niveaux ➔", idle_warn: "REPARS !",
+                menu_hint1: "CLIQUE N'IMPORTE OÙ", menu_hint2: "Pour afficher les Règles & le Garage"
+            },
+            en: {
+                fuel: "Fuel", coins: "Coins",
+                pause: "PAUSED", resume: "Resume", restart: "Restart",
+                settings: "Settings", main_menu: "Main Menu",
+                language: "Language:", volume: "Volume:", back: "Back",
+                play_again: "CLICK TO PLAY AGAIN",
+                click_to_start_intro: "CLICK TO START",
+                win_title: "YOU WIN!", win_dist: "Target reached",
+                select_level: "SELECT LEVEL",
+                rules_title: "GAME RULES 📖",
+                r_accel_t: "Acceleration:", r_accel_d: "Hold the screen to move forward.",
+                r_idle_t: "Idling:", r_idle_d: "Don't stay still for too long!",
+                r_fuel_t: "Fuel:", r_fuel_d: "Grab the 'E' cans so you never hit 0%.",
+                r_goal_t: "Goal:", r_goal_d: "Reach the finish line to earn coins and unlock the next levels!",
+                next_garage: "Next (Garage) ➔", back_menu: "Back to Menu",
+                garage_title: "GARAGE & CARS 🚗", next_levels: "Levels ➔",
+                equip: "Equip", equipped: "Equipped ⭐", model: "Model",
+                not_enough: "Not enough coins!", reward: "Reward",
+                goto_levels: "Level Menu ➔", idle_warn: "GO!",
+                menu_hint1: "CLICK ANYWHERE", menu_hint2: "To open the Rules & the Garage"
+            },
+            es: {
+                fuel: "Gasolina", coins: "Monedas",
+                pause: "PAUSA", resume: "Reanudar", restart: "Reiniciar",
+                settings: "Ajustes", main_menu: "Menú Principal",
+                language: "Idioma:", volume: "Volumen:", back: "Volver",
+                play_again: "CLIC PARA REJUGAR",
+                click_to_start_intro: "HAZ CLIC PARA EMPEZAR",
+                win_title: "¡GANASTE!", win_dist: "Objetivo alcanzado",
+                select_level: "ELEGIR NIVEL",
+                rules_title: "REGLAS DEL JUEGO 📖",
+                r_accel_t: "Aceleración:", r_accel_d: "Mantén pulsada la pantalla para avanzar.",
+                r_idle_t: "Inactividad:", r_idle_d: "¡No te quedes parado demasiado tiempo!",
+                r_fuel_t: "Gasolina:", r_fuel_d: "Recoge los bidones 'E' para no llegar al 0%.",
+                r_goal_t: "Objetivo:", r_goal_d: "¡Llega a la meta para ganar monedas y desbloquear los siguientes niveles!",
+                next_garage: "Siguiente (Garaje) ➔", back_menu: "Volver al Menú",
+                garage_title: "GARAJE Y COCHES 🚗", next_levels: "Niveles ➔",
+                equip: "Equipar", equipped: "Equipado ⭐", model: "Modelo",
+                not_enough: "¡No tienes suficientes monedas!", reward: "Recompensa",
+                goto_levels: "Menú de Niveles ➔", idle_warn: "¡ARRANCA!",
+                menu_hint1: "HAZ CLIC EN CUALQUIER PARTE", menu_hint2: "Para ver las Reglas y el Garaje"
+            },
+            it: {
+                fuel: "Carburante", coins: "Monete",
+                pause: "PAUSA", resume: "Riprendi", restart: "Ricomincia",
+                settings: "Impostazioni", main_menu: "Menu Principale",
+                language: "Lingua:", volume: "Volume:", back: "Indietro",
+                play_again: "CLICCA PER RIGIOCARE",
+                click_to_start_intro: "CLICCA PER INIZIARE",
+                win_title: "HAI VINTO!", win_dist: "Obiettivo raggiunto",
+                select_level: "SCEGLI LIVELLO",
+                rules_title: "REGOLE DEL GIOCO 📖",
+                r_accel_t: "Accelerazione:", r_accel_d: "Tieni premuto lo schermo per avanzare.",
+                r_idle_t: "Inattività:", r_idle_d: "Non restare fermo troppo a lungo!",
+                r_fuel_t: "Carburante:", r_fuel_d: "Raccogli le taniche 'E' per non arrivare a 0%.",
+                r_goal_t: "Obiettivo:", r_goal_d: "Raggiungi il traguardo per guadagnare monete e sbloccare i livelli successivi!",
+                next_garage: "Avanti (Garage) ➔", back_menu: "Torna al Menu",
+                garage_title: "GARAGE E AUTO 🚗", next_levels: "Livelli ➔",
+                equip: "Equipaggia", equipped: "Equipaggiata ⭐", model: "Modello",
+                not_enough: "Monete insufficienti!", reward: "Ricompensa",
+                goto_levels: "Menu Livelli ➔", idle_warn: "RIPARTI!",
+                menu_hint1: "CLICCA OVUNQUE", menu_hint2: "Per aprire le Regole e il Garage"
+            },
+            tr: {
+                fuel: "Yakıt", coins: "Jeton",
+                pause: "DURAKLATILDI", resume: "Devam Et", restart: "Yeniden Başlat",
+                settings: "Ayarlar", main_menu: "Ana Menü",
+                language: "Dil:", volume: "Ses Seviyesi:", back: "Geri",
+                play_again: "TEKRAR OYNAMAK İÇİN TIKLA",
+                click_to_start_intro: "BAŞLAMAK İÇİN TIKLAYIN",
+                win_title: "KAZANDIN!", win_dist: "Hedefe ulaşıldı",
+                select_level: "SEVİYE SEÇ",
+                rules_title: "OYUN KURALLARI 📖",
+                r_accel_t: "Hızlanma:", r_accel_d: "İlerlemek için ekrana basılı tut.",
+                r_idle_t: "Hareketsizlik:", r_idle_d: "Çok uzun süre durma!",
+                r_fuel_t: "Yakıt:", r_fuel_d: "%0'a düşmemek için 'E' bidonlarını topla.",
+                r_goal_t: "Hedef:", r_goal_d: "Jeton kazanmak ve sonraki seviyeleri açmak için bitiş çizgisine ulaş!",
+                next_garage: "İleri (Garaj) ➔", back_menu: "Menüye Dön",
+                garage_title: "GARAJ VE ARABALAR 🚗", next_levels: "Seviyeler ➔",
+                equip: "Kuşan", equipped: "Kuşanıldı ⭐", model: "Model",
+                not_enough: "Yeterli jetonun yok!", reward: "Ödül",
+                goto_levels: "Seviye Menüsü ➔", idle_warn: "HAREKET ET!",
+                menu_hint1: "HERHANGİ BİR YERE TIKLA", menu_hint2: "Kuralları ve Garajı açmak için"
+            },
+            ar: {
+                fuel: "الوقود", coins: "عملات",
+                pause: "إيقاف مؤقت", resume: "استئناف", restart: "إعادة التشغيل",
+                settings: "الإعدادات", main_menu: "القائمة الرئيسية",
+                language: "اللغة:", volume: "الصوت:", back: "العودة",
+                play_again: "انقر للإعادة",
+                click_to_start_intro: "انقر للبدء",
+                win_title: "لقد فزت!", win_dist: "تم الوصول للهدف",
+                select_level: "اختر المستوى",
+                rules_title: "قواعد اللعبة 📖",
+                r_accel_t: "التسارع:", r_accel_d: "استمر بالضغط على الشاشة للتقدم.",
+                r_idle_t: "التوقف:", r_idle_d: "لا تبقَ ثابتًا لفترة طويلة!",
+                r_fuel_t: "الوقود:", r_fuel_d: "اجمع عبوات 'E' حتى لا تصل إلى 0%.",
+                r_goal_t: "الهدف:", r_goal_d: "اصل إلى خط النهاية لكسب العملات وفتح المستويات التالية!",
+                next_garage: "التالي (المرآب) ➔", back_menu: "العودة للقائمة",
+                garage_title: "المرآب والسيارات 🚗", next_levels: "المستويات ➔",
+                equip: "تجهيز", equipped: "مجهّزة ⭐", model: "الطراز",
+                not_enough: "لا تملك عملات كافية!", reward: "المكافأة",
+                goto_levels: "قائمة المستويات ➔", idle_warn: "انطلق!",
+                menu_hint1: "انقر في أي مكان", menu_hint2: "لعرض القواعد والمرآب"
+            }
+        };
+
+        function setText(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = value;
+        }
+
+        function updateLanguageUI() {
+            const t = i18n[currentLang];
+
+            document.documentElement.lang = currentLang;
+            document.documentElement.dir = (currentLang === 'ar') ? 'rtl' : 'ltr';
+
+            setText('ui-fuel-lbl', t.fuel);
+            setText('ui-coins-lbl', t.coins);
+            setText('txt-pause-title', t.pause);
+            setText('btn-resume', t.resume);
+            setText('btn-restart', t.restart);
+            setText('btn-settings', t.settings);
+            setText('btn-main-menu', t.main_menu);
+            setText('txt-level-title', t.select_level);
+            setText('btn-back-level', t.back);
+            setText('txt-settings-title', t.settings);
+            setText('txt-lang-lbl', t.language);
+            document.getElementById('txt-vol-lbl').firstChild.nodeValue = t.volume + " ";
+            setText('btn-back-settings', t.back);
+            setText('txt-win-title', t.win_title);
+            setText('txt-win-dist', t.win_dist);
+            setText('txt-win-reward', t.reward);
+            setText('btn-win-restart', t.restart);
+            setText('btn-win-main-menu', t.main_menu);
+
+            setText('txt-rules-title', t.rules_title);
+            setText('txt-r-accel-t', t.r_accel_t);
+            setText('txt-r-accel-d', t.r_accel_d);
+            setText('txt-r-idle-t', t.r_idle_t);
+            setText('txt-r-idle-d', t.r_idle_d);
+            setText('txt-r-fuel-t', t.r_fuel_t);
+            setText('txt-r-fuel-d', t.r_fuel_d);
+            setText('txt-r-goal-t', t.r_goal_t);
+            setText('txt-r-goal-d', t.r_goal_d);
+            setText('btn-rules-next', t.next_garage);
+            setText('btn-back-rules', t.back_menu);
+
+            setText('txt-garage-title', t.garage_title);
+            setText('btn-garage-next', t.next_levels);
+            setText('btn-back-garage', t.back_menu);
+            setText('btn-goto-levels', t.goto_levels);
+            setText('btn-gameover-menu', t.main_menu);
+
+            buildGarageGrid();
+        }
+
+        const carCatalog = [];
+        const baseCarNames = [
+            "Volt Stride", "Neo Pulse", "Aero Swift", "Cyber Roam", "Apex Runner"
+        ];
+
+        const engineSoundNames = [
+            "Électrique Doux", "4-Cylindres Standard", "Turbo Compact", "Échappement Sport", "V6 Rugueux"
+        ];
+
+        for (let i = 0; i < 5; i++) {
+            let price = i === 0 ? 0 : Math.floor(100 * Math.pow(1.18, i));
+            
+            let hue = (i * 70) % 360;
+            let color = `hsl(${hue}, 80%, 50%)`;
+
+            let waveTypes = ['sawtooth', 'square', 'triangle', 'sine'];
+            let waveType = waveTypes[i % waveTypes.length];
+            let baseFreq = 25 + (i * 8) % 80;       
+            let pitchFactor = 10 + (i * 10) % 55;    
+
+            carCatalog.push({
+                id: i,
+                name: baseCarNames[i] || (`Voiture #${i+1}`),
+                price: price,
+                color: color,
+                tier: i, 
+                soundName: engineSoundNames[i] || "Moteur Custom",
+                sound: {
+                    type: waveType,
+                    baseFreq: baseFreq,
+                    pitchFactor: pitchFactor
+                }
+            });
+        }
+
+        let ownedCars = [0];
+        try {
+            const saved = JSON.parse(localStorage.getItem('tiktakboom_owned_cars'));
+            if (Array.isArray(saved) && saved.length) {
+                ownedCars = saved.filter(id => id < carCatalog.length);
+                if (ownedCars.length === 0) ownedCars = [0];
+            }
+        } catch (e) { }
+
+        let equippedCarId = Math.floor(readStored('tiktakboom_equipped_car', 0, 0, carCatalog.length - 1));
+        if (!ownedCars.includes(equippedCarId)) equippedCarId = ownedCars[0];
+
+        let gameState = 'INTRO_WAIT'; 
+        let menuPulse = 0;
+        let introProgress = 0;
+
+        let audioCtx = null;
+        let engineOsc = null;
+        let engineGain = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            if (!engineOsc) startEngineSound();
+        }
+
+        function playIntroCinematicSound() {
+            if (!audioCtx || masterVolume <= 0) return;
+            const now = audioCtx.currentTime;
+            for (let i = 0; i < 3; i++) {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800 + (i * 200), now + (i * 0.8));
+                gain.gain.setValueAtTime(0.4 * masterVolume, now + (i * 0.8));
+                gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.8) + 0.15);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + (i * 0.8));
+                osc.stop(now + (i * 0.8) + 0.15);
+            }
+            const boomDelay = 2.5;
+            let boomOsc = audioCtx.createOscillator();
+            let boomGain = audioCtx.createGain();
+            boomOsc.type = 'sawtooth';
+            boomOsc.frequency.setValueAtTime(160, now + boomDelay);
+            boomOsc.frequency.exponentialRampToValueAtTime(30, now + boomDelay + 2.0);
+            boomGain.gain.setValueAtTime(0.9 * masterVolume, now + boomDelay);
+            boomGain.gain.exponentialRampToValueAtTime(0.001, now + boomDelay + 2.0);
+            boomOsc.connect(boomGain);
+            boomGain.connect(audioCtx.destination);
+            boomOsc.start(now + boomDelay);
+            boomOsc.stop(now + boomDelay + 2.0);
+        }
+
+        function playWinSound() {
+            if (!audioCtx || masterVolume <= 0) return;
+            const now = audioCtx.currentTime;
+            const notes = [523.25, 659.25, 783.99, 1046.50]; 
+            notes.forEach((freq, i) => {
+                playPianoNote(freq, now + (i * 0.15), 0.3, 0.6 * masterVolume);
+            });
+        }
+
+        function startEngineSound() {
+            if (!audioCtx) return;
+            if (engineOsc) {
+                try { engineOsc.stop(); engineOsc.disconnect(); } catch(e) {}
+                engineOsc = null;
+            }
+            if (engineGain) {
+                try { engineGain.disconnect(); } catch(e) {}
+                engineGain = null;
+            }
+
+            let currentCarData = carCatalog[equippedCarId] || carCatalog[0];
+
+            engineOsc = audioCtx.createOscillator();
+            engineGain = audioCtx.createGain();
+            
+            engineOsc.type = currentCarData.sound.type;
+            engineOsc.frequency.setValueAtTime(currentCarData.sound.baseFreq, audioCtx.currentTime);
+            
+            engineGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+            engineOsc.connect(engineGain);
+            engineGain.connect(audioCtx.destination);
+            engineOsc.start();
+        }
+
+        function updateEngineSound(speed, isOver) {
+            if (!audioCtx) return;
+            if (!engineOsc && audioCtx && gameState === 'PLAYING') {
+                startEngineSound();
+            }
+            if (!engineGain || !engineOsc) return;
+
+            let currentCarData = carCatalog[equippedCarId] || carCatalog[0];
+
+            if (isOver || speed <= 0 || (gameState !== 'PLAYING' && gameState !== 'WIN') || masterVolume <= 0) {
+                engineGain.gain.setTargetAtTime(0.001, audioCtx.currentTime, 0.1);
+            } else {
+                let targetFreq = currentCarData.sound.baseFreq + (speed * currentCarData.sound.pitchFactor);
+                let targetVolume = (0.15 + (speed * 0.025)) * masterVolume;
+                engineOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.05);
+                engineGain.gain.setTargetAtTime(Math.min(targetVolume, 0.45 * masterVolume), audioCtx.currentTime, 0.05);
+            }
+        }
+
+        function playPianoNote(freq, startTime, duration, volume = 0.5) {
+            if (!audioCtx || masterVolume <= 0) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, startTime);
+            gain.gain.setValueAtTime(volume * masterVolume, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        }
+
+        function playCollectSound(frequency = 587) {
+            if (!audioCtx) return;
+            playPianoNote(frequency, audioCtx.currentTime, 0.2, 0.4);
+        }
+
+        function playMalusSound() {
+            if (!audioCtx || masterVolume <= 0) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(250, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(70, audioCtx.currentTime + 0.35);
+            gain.gain.setValueAtTime(0.6 * masterVolume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.35);
+        }
+
+        function playShieldSound() {
+            if (!audioCtx || masterVolume <= 0) return;
+            const now = audioCtx.currentTime;
+            playPianoNote(440, now, 0.15, 0.5);
+            playPianoNote(554.37, now + 0.1, 0.15, 0.5);
+            playPianoNote(659.25, now + 0.2, 0.3, 0.6);
+        }
+
+        function playShieldBreakSound() {
+            if (!audioCtx || masterVolume <= 0) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.7 * masterVolume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playCrashSound() {
+            if (!audioCtx || masterVolume <= 0) return;
+            const now = audioCtx.currentTime;
+            playPianoNote(659.25, now, 0.25, 0.6);
+            playPianoNote(523.25, now + 0.18, 0.25, 0.6);
+            playPianoNote(130.81, now + 0.36, 1.2, 0.8);
+            playPianoNote(196.00, now + 0.36, 1.2, 0.6);
+            playPianoNote(261.63, now + 0.36, 1.2, 0.5);
+        }
+
+        let currentLevel = 1;
+        let unlockedLevel = Math.floor(readStored('tiktakboom_unlocked_level', 1, 1, 200));
+        let totalCoins = Math.floor(readStored('tiktakboom_coins', 0, 0, Number.MAX_SAFE_INTEGER));
+        document.getElementById('coins-text').innerText = totalCoins;
+
+        let TARGET_DISTANCE = 50 + (currentLevel * 10);
+        let essence = 100;
+        let isPressing = false;
+        let hasShield = false;
+        let stoppedTimer = 0;
+        let lastEssenceShown = -1;
+        let distanceTravelled = 0;
+        let finishLine = null;
+        let currentSpeed = 0;
+        let baseMaxSpeed = 5;
+        let boostTimer = 0;
+
+        const IDLE_LIMIT = 240;   
+        const IDLE_WARN = 120;    
+
+        let car = { x: canvas.width / 2 - 20, y: canvas.height - 90, width: 40, height: 70 };
+        let obstacles = [];
+        let items = []; 
+        let particles = [];
+
+        let toastTimer = null;
+
+        function showToast(message) {
+            const el = document.getElementById('toast');
+            el.innerText = message;
+            el.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+        }
+
+        function buildLevelGrid() {
+            const gridContainer = document.getElementById('level-grid-container');
+            gridContainer.innerHTML = ''; 
+            for (let i = 1; i <= 200; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'level-btn';
+                if (i <= unlockedLevel) {
+                    btn.innerText = i;
+                    btn.addEventListener('click', () => startLevel(i));
+                } else {
+                    btn.innerText = '🔒 ' + i;
+                    btn.classList.add('locked');
+                    btn.disabled = true;
+                }
+                gridContainer.appendChild(btn);
+            }
+        }
+
+        function buildGarageGrid() {
+            const container = document.getElementById('garage-grid-container');
+            container.innerHTML = '';
+
+            const t = i18n[currentLang];
+
+            carCatalog.forEach((c) => {
+                const card = document.createElement('div');
+                let isOwned = ownedCars.includes(c.id);
+                let isEquipped = equippedCarId === c.id;
+
+                card.className = 'car-card';
+                if (isOwned) card.classList.add('owned');
+                if (isEquipped) card.classList.add('equipped');
+
+                let statusText = isEquipped ? t.equipped : (isOwned ? t.equip : `${c.price} 🪙`);
+
+                let previewHTML = '';
+                if (!isOwned) {
+                    previewHTML = `
+                        <div style="position:relative; width:46px; height:60px; margin: 2px auto; display:flex; justify-content:center; align-items:center;">
+                            <div style="width:32px; height:54px; background:${c.color}; border-radius:6px; border:1px solid #fff; opacity: 0.35; filter: grayscale(40%);"></div>
+                            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:16px; text-shadow: 0 0 4px #000;">🔒</div>
+                        </div>
+                    `;
+                } else {
+                    previewHTML = `
+                        <div id="preview-box-${c.id}" style="width:46px; height:60px; margin: 2px auto; position:relative;"></div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        ${previewHTML}
+                        <h4>${c.name}</h4>
+                        <p>${t.model} #${c.tier + 1}</p>
+                        <div class="sound-badge">🔊 ${c.soundName}</div>
+                    </div>
+                    <button>${statusText}</button>
+                `;
+
+                if (isOwned) {
+                    setTimeout(() => {
+                        const box = document.getElementById(`preview-box-${c.id}`);
+                        if (box) {
+                            const subCanvas = document.createElement('canvas');
+                            subCanvas.width = 46;
+                            subCanvas.height = 60;
+                            const subCtx = subCanvas.getContext('2d');
+                            drawUniqueCar(subCtx, 7, 3, 32, 54, c.color, c.tier);
+                            box.appendChild(subCanvas);
+                        }
+                    }, 10);
+                }
+
+                card.addEventListener('click', () => {
+                    if (isEquipped) return;
+                    if (isOwned) {
+                        equippedCarId = c.id;
+                        localStorage.setItem('tiktakboom_equipped_car', equippedCarId);
+                        buildGarageGrid();
+                        startEngineSound();
+                    } else {
+                        if (totalCoins >= c.price) {
+                            totalCoins -= c.price;
+                            localStorage.setItem('tiktakboom_coins', totalCoins);
+                            document.getElementById('coins-text').innerText = totalCoins;
+                            ownedCars.push(c.id);
+                            localStorage.setItem('tiktakboom_owned_cars', JSON.stringify(ownedCars));
+                            equippedCarId = c.id;
+                            localStorage.setItem('tiktakboom_equipped_car', equippedCarId);
+                            buildGarageGrid();
+                            startEngineSound();
+                        } else {
+                            showToast(i18n[currentLang].not_enough);
+                        }
+                    }
+                });
+
+                container.appendChild(card);
+            });
+        }
+
+        function startLevel(lvlNum) {
+            currentLevel = lvlNum;
+            TARGET_DISTANCE = 50 + (currentLevel * 10); 
+            hideModals();
+            resetGame();
+        }
+
+        function triggerGameOver() {
+            if (gameState === 'GAMEOVER' || gameState === 'WIN') return;
+            gameState = 'GAMEOVER';
+            document.getElementById('pause-btn').style.display = 'none';
+            document.getElementById('btn-gameover-menu').classList.remove('hidden');
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: car.x + car.width / 2,
+                    y: car.y + car.height / 2,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    size: Math.random() * 6 + 2,
+                    color: Math.random() < 0.5 ? '#ff0055' : '#ffcc00',
+                    alpha: 1
+                });
+            }
+            playCrashSound();
+        }
+
+        function triggerWin() {
+            if (gameState === 'WIN') return;
+            gameState = 'WIN';
+            updateEngineSound(0, true); 
+            document.getElementById('pause-btn').style.display = 'none';
+
+            let minReward = 50 + Math.floor((currentLevel / 200) * 300);
+            let maxReward = 200 + Math.floor((currentLevel / 200) * 800);
+            if (maxReward > 1000) maxReward = 1000;
+            let earnedCoins = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
+
+            totalCoins += earnedCoins;
+            localStorage.setItem('tiktakboom_coins', totalCoins);
+            document.getElementById('coins-text').innerText = totalCoins;
+
+            if (currentLevel >= unlockedLevel && unlockedLevel < 200) {
+                unlockedLevel = currentLevel + 1;
+                localStorage.setItem('tiktakboom_unlocked_level', unlockedLevel);
+                buildLevelGrid();
+            }
+
+            document.getElementById('win-dist-text').innerText = TARGET_DISTANCE + "m";
+            document.getElementById('win-reward-text').innerText = earnedCoins;
+            document.getElementById('win-modal').classList.remove('hidden');
+            playWinSound();
+        }
+
+        function resetGame() {
+            essence = 100;
+            currentSpeed = 0;
+            boostTimer = 0;
+            stoppedTimer = 0;
+            distanceTravelled = 0;
+            finishLine = null;
+            hasShield = false;
+            obstacles = [];
+            items = [];
+            particles = [];
+            car.x = canvas.width / 2 - 20;
+            lastEssenceShown = -1;
+            gameState = 'PLAYING';
+            document.getElementById('pause-btn').style.display = 'block';
+            document.getElementById('btn-gameover-menu').classList.add('hidden');
+            hideModals();
+            document.getElementById('win-modal').classList.add('hidden');
+            startEngineSound();
+        }
+
+        const pauseBtn = document.getElementById('pause-btn');
+        const pauseModal = document.getElementById('pause-modal');
+        const rulesModal = document.getElementById('rules-modal');
+        const garageModal = document.getElementById('garage-modal');
+        const levelModal = document.getElementById('level-modal');
+        const settingsModal = document.getElementById('settings-modal');
+        const langSelect = document.getElementById('lang-select');
+        const volumeSlider = document.getElementById('volume-slider');
+
+        function hideModals() {
+            pauseModal.classList.add('hidden');
+            rulesModal.classList.add('hidden');
+            garageModal.classList.add('hidden');
+            levelModal.classList.add('hidden');
+            settingsModal.classList.add('hidden');
+        }
+
+        pauseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                pauseModal.classList.remove('hidden');
+                updateEngineSound(0, true);
+            }
+        });
+
+        const resumeActions = () => { hideModals(); gameState = 'PLAYING'; startEngineSound(); };
+        const restartActions = () => { resetGame(); };
+        const mainMenuActions = () => { hideModals(); document.getElementById('pause-btn').style.display = 'none'; document.getElementById('win-modal').classList.add('hidden'); document.getElementById('btn-gameover-menu').classList.add('hidden'); gameState = 'MENU'; updateEngineSound(0, true); };
+
+        document.getElementById('btn-resume').addEventListener('click', resumeActions);
+        document.getElementById('btn-restart').addEventListener('click', restartActions);
+        document.getElementById('btn-win-restart').addEventListener('click', restartActions);
+        
+        document.getElementById('btn-goto-levels').addEventListener('click', () => {
+            hideModals();
+            document.getElementById('win-modal').classList.add('hidden');
+            document.getElementById('pause-btn').style.display = 'none';
+            gameState = 'LEVEL_SELECT';
+            levelModal.classList.remove('hidden');
+        });
+        
+        document.getElementById('btn-rules-next').addEventListener('click', () => {
+            rulesModal.classList.add('hidden');
+            gameState = 'GARAGE';
+            buildGarageGrid();
+            garageModal.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-garage-next').addEventListener('click', () => {
+            garageModal.classList.add('hidden');
+            gameState = 'LEVEL_SELECT';
+            buildLevelGrid();
+            levelModal.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-back-rules').addEventListener('click', () => { rulesModal.classList.add('hidden'); gameState = 'MENU'; });
+        document.getElementById('btn-back-garage').addEventListener('click', () => { garageModal.classList.add('hidden'); gameState = 'MENU'; });
+        document.getElementById('btn-back-level').addEventListener('click', () => { levelModal.classList.add('hidden'); gameState = 'MENU'; });
+
+        document.getElementById('btn-settings').addEventListener('click', () => { pauseModal.classList.add('hidden'); settingsModal.classList.remove('hidden'); });
+        document.getElementById('btn-back-settings').addEventListener('click', () => { settingsModal.classList.add('hidden'); if (gameState === 'PAUSED') pauseModal.classList.remove('hidden'); else gameState = 'MENU'; });
+
+        document.getElementById('btn-main-menu').addEventListener('click', mainMenuActions);
+        document.getElementById('btn-win-main-menu').addEventListener('click', mainMenuActions);
+        document.getElementById('btn-gameover-menu').addEventListener('click', (e) => { e.stopPropagation(); mainMenuActions(); });
+
+        langSelect.addEventListener('change', (e) => {
+            currentLang = e.target.value;
+            updateLanguageUI();
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value);
+            masterVolume = val / 100;
+            document.getElementById('vol-val').innerText = val;
+            localStorage.setItem('tiktakboom_volume', masterVolume);
+            if (masterVolume === 0) {
+                updateEngineSound(0, true);
+            }
+        });
+
+        function startMove(e) { 
+            e.preventDefault(); 
+            initAudio(); 
+
+            if (gameState === 'INTRO_WAIT') {
+                gameState = 'INTRO_ANIM';
+                introProgress = 0;
+                playIntroCinematicSound();
+                return;
+            }
+
+            if (gameState === 'MENU') {
+                gameState = 'RULES';
+                rulesModal.classList.remove('hidden');
+                return;
+            }
+
+            if (gameState === 'GAMEOVER') {
+                resetGame();
+                return;
+            }
+
+            if (gameState === 'PLAYING') {
+                isPressing = true; 
+                updateCarPosition(e); 
+            }
+        }
+        
+        function stopMove(e) { if (e) e.preventDefault(); isPressing = false; }
+        function moveCar(e) { if (isPressing && gameState === 'PLAYING') { e.preventDefault(); updateCarPosition(e); } }
+
+        function updateCarPosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (!rect.width) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const scaleX = canvas.width / rect.width;
+            car.x = (clientX - rect.left) * scaleX - car.width / 2;
+            if (car.x < 0) car.x = 0;
+            if (car.x + car.width > canvas.width) car.x = canvas.width - car.width;
+        }
+
+        canvas.addEventListener('mousedown', startMove);
+        canvas.addEventListener('mouseup', stopMove);
+        canvas.addEventListener('mousemove', moveCar);
+        canvas.addEventListener('touchstart', startMove, { passive: false });
+        canvas.addEventListener('touchend', stopMove, { passive: false });
+        canvas.addEventListener('touchmove', moveCar, { passive: false });
+
+        canvas.addEventListener('mouseleave', () => { isPressing = false; });
+        canvas.addEventListener('touchcancel', () => { isPressing = false; });
+        window.addEventListener('mouseup', () => { isPressing = false; });
+        window.addEventListener('blur', () => { isPressing = false; });
+
+        function checkCollision(rect1, rect2) {
+            return (
+                rect1.x < rect2.x + rect2.width &&
+                rect1.x + rect1.width > rect2.x &&
+                rect1.y < rect2.y + rect2.height &&
+                rect1.y + rect1.height > rect2.y
+            );
+        }
+
+        function drawDistanceHUD() {
+            const currentMeters = Math.min(TARGET_DISTANCE, Math.floor(distanceTravelled));
+            const progress = currentMeters / TARGET_DISTANCE;
+
+            ctx.save();
+            ctx.fillStyle = "rgba(17, 17, 26, 0.85)";
+            ctx.strokeStyle = "#3498db";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(10, 10, 170, 48, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "#ffcc00";
+            ctx.font = "bold 11px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText(`LVL ${currentLevel}`, 20, 24);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 11px Arial";
+            ctx.fillText(`📏 ${currentMeters}m / ${TARGET_DISTANCE}m`, 70, 24);
+
+            ctx.fillStyle = "#22222b";
+            ctx.fillRect(20, 32, 150, 12);
+            
+            ctx.fillStyle = "#2ecc71";
+            ctx.fillRect(20, 32, 150 * progress, 12);
+            
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(20, 32, 150, 12);
+            ctx.restore();
+        }
+
+        function drawUniqueCar(c2d, x, y, w, h, bodyColor, tier = 0) {
+            c2d.save();
+            c2d.translate(x, y);
+
+            let modelStyle = tier % 5;
+
+            if (modelStyle === 0) {
+                c2d.fillStyle = '#111';
+                c2d.fillRect(-2, 10, 4, 12); c2d.fillRect(w - 2, 10, 4, 12);
+                c2d.fillRect(-2, h - 18, 4, 12); c2d.fillRect(w - 2, h - 18, 4, 12);
+
+                c2d.fillStyle = bodyColor;
+                c2d.beginPath();
+                c2d.roundRect(2, 6, w - 4, h - 12, 8);
+                c2d.fill();
+
+                c2d.fillStyle = '#1a1a2e';
+                c2d.fillRect(6, 16, w - 12, 18);
+                c2d.fillStyle = 'rgba(255,255,255,0.4)';
+                c2d.fillRect(8, 18, w - 16, 6);
+
+                c2d.fillStyle = '#00ffff';
+                c2d.fillRect(4, 6, 6, 3); c2d.fillRect(w - 10, 6, 6, 3);
+                c2d.fillStyle = '#ff0033';
+                c2d.fillRect(4, h - 9, 6, 3); c2d.fillRect(w - 10, h - 9, 6, 3);
+            }
+            else if (modelStyle === 1) {
+                c2d.fillStyle = '#111';
+                c2d.fillRect(-3, 8, 5, 14); c2d.fillRect(w - 2, 8, 5, 14);
+                c2d.fillRect(-3, h - 22, 5, 14); c2d.fillRect(w - 2, h - 22, 5, 14);
+
+                c2d.fillStyle = '#222';
+                c2d.fillRect(4, h - 4, w - 8, 4);
+
+                c2d.fillStyle = bodyColor;
+                c2d.beginPath();
+                c2d.moveTo(4, 10);
+                c2d.lineTo(w - 4, 10);
+                c2d.lineTo(w, h - 4);
+                c2d.lineTo(0, h - 4);
+                c2d.closePath();
+                c2d.fill();
+
+                c2d.fillStyle = 'rgba(255,255,255,0.6)';
+                c2d.fillRect(w / 2 - 2, 4, 4, h - 8);
+
+                c2d.fillStyle = '#111';
+                c2d.beginPath();
+                c2d.roundRect(6, 20, w - 12, 22, 4);
+                c2d.fill();
+
+                c2d.fillStyle = '#ffffff';
+                c2d.fillRect(3, 10, 7, 3); c2d.fillRect(w - 10, 10, 7, 3);
+                c2d.fillStyle = '#ff0033';
+                c2d.fillRect(3, h - 7, 7, 3); c2d.fillRect(w - 10, h - 7, 7, 3);
+            }
+            else if (modelStyle === 2) {
+                c2d.fillStyle = '#111';
+                c2d.fillRect(-4, 6, 6, 16); c2d.fillRect(w - 2, 6, 6, 16);
+                c2d.fillRect(-4, h - 22, 6, 16); c2d.fillRect(w - 2, h - 22, 6, 16);
+
+                c2d.fillStyle = bodyColor;
+                c2d.beginPath();
+                c2d.roundRect(0, 2, w, h - 4, 4);
+                c2d.fill();
+
+                c2d.fillStyle = '#111';
+                c2d.fillRect(w / 2 - 8, 2, 5, h - 4);
+                c2d.fillRect(w / 2 + 3, 2, 5, h - 4);
+
+                c2d.fillStyle = '#151515';
+                c2d.fillRect(6, 18, w - 12, 20);
+
+                c2d.fillStyle = '#ffcc00';
+                c2d.fillRect(2, 2, 8, 4); c2d.fillRect(w - 10, 2, 8, 4);
+                c2d.fillStyle = '#ff0000';
+                c2d.fillRect(2, h - 6, 8, 4); c2d.fillRect(w - 10, h - 6, 8, 4);
+            }
+            else if (modelStyle === 3) {
+                c2d.fillStyle = '#111';
+                c2d.fillRect(-6, 12, 6, 12); c2d.fillRect(w, 12, 6, 12);
+                c2d.fillRect(-6, h - 24, 6, 12); c2d.fillRect(w, h - 24, 6, 12);
+
+                c2d.fillStyle = '#222';
+                c2d.fillRect(2, 0, w - 4, 3);
+                c2d.fillRect(0, h - 3, w, 4);
+
+                c2d.fillStyle = bodyColor;
+                c2d.beginPath();
+                c2d.moveTo(w / 2 - 4, 2);
+                c2d.lineTo(w / 2 + 4, 2);
+                c2d.lineTo(w - 4, h - 6);
+                c2d.lineTo(4, h - 6);
+                c2d.closePath();
+                c2d.fill();
+
+                c2d.fillStyle = '#05050a';
+                c2d.beginPath();
+                c2d.ellipse(w / 2, h / 2, 5, 10, 0, 0, Math.PI * 2);
+                c2d.fill();
+
+                c2d.fillStyle = '#00ffff';
+                c2d.fillRect(w / 2 - 3, 3, 6, 2);
+            }
+            else {
+                c2d.fillStyle = '#0a0a0f';
+                c2d.fillRect(-3, 8, 5, 14); c2d.fillRect(w - 2, 8, 5, 14);
+                c2d.fillRect(-3, h - 20, 5, 14); c2d.fillRect(w - 2, h - 20, 5, 14);
+
+                c2d.fillStyle = '#ff0055';
+                c2d.fillRect(w / 2 - 3, h - 6, 6, 6);
+                c2d.fillStyle = bodyColor;
+                c2d.fillRect(1, h - 9, w - 2, 3);
+
+                c2d.fillStyle = bodyColor;
+                c2d.beginPath();
+                c2d.moveTo(w / 2, 0);
+                c2d.lineTo(w, 15);
+                c2d.lineTo(w - 2, h - 4);
+                c2d.lineTo(2, h - 4);
+                c2d.lineTo(0, 15);
+                c2d.closePath();
+                c2d.fill();
+
+                c2d.fillStyle = '#00ffff';
+                c2d.fillRect(w / 2 - 1, 4, 2, h - 12);
+
+                c2d.fillStyle = '#05050f';
+                c2d.beginPath();
+                c2d.roundRect(8, 22, w - 16, 16, 6);
+                c2d.fill();
+
+                c2d.fillStyle = '#ff00ff';
+                c2d.fillRect(3, 4, 7, 3); c2d.fillRect(w - 10, 4, 7, 3);
+                c2d.fillStyle = '#ff0000';
+                c2d.fillRect(3, h - 7, 7, 3); c2d.fillRect(w - 10, h - 7, 7, 3);
+            }
+
+            c2d.restore();
+        }
+
+        function drawObstacleCar(x, y, w, h, customColor) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.fillStyle = '#111';
+            ctx.fillRect(-3, 8, 5, 12); ctx.fillRect(w - 2, 8, 5, 12);
+            ctx.fillRect(-3, h - 20, 5, 12); ctx.fillRect(w - 2, h - 20, 5, 12);
+
+            ctx.fillStyle = customColor;
+            ctx.beginPath();
+            ctx.roundRect(2, 4, w - 4, h - 8, 6);
+            ctx.fill();
+
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(6, 14, w - 12, 16);
+
+            ctx.fillStyle = '#c0392b';
+            ctx.fillRect(4, h - 7, 6, 3); ctx.fillRect(w - 10, h - 7, 6, 3);
+
+            ctx.restore();
+        }
+
+        function drawRetroCanister(x, y, w, h, color, letter) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.roundRect(0, 4, w, h - 4, 5); ctx.fill();
+            ctx.fillStyle = '#222'; ctx.fillRect(w / 2 - 4, 0, 8, 5);
+            ctx.fillStyle = '#ddd'; ctx.fillRect(w - 8, 1, 5, 4);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; ctx.fillRect(3, 10, w - 6, h - 16);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+            ctx.fillText(letter, w / 2, h / 2 + 6);
+            ctx.restore();
+        }
+
+        function drawFinishLine(y) {
+            const h = 40; 
+            const rows = 4;
+            const cols = 12;
+            const tileSize = canvas.width / cols;
+            const rowHeight = h / rows;
+
+            ctx.save();
+            ctx.translate(0, y);
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    ctx.fillStyle = ((r + c) % 2 === 0) ? '#ffffff' : '#000000';
+                    ctx.fillRect(c * tileSize, r * rowHeight, tileSize, rowHeight);
+                }
+            }
+            ctx.strokeStyle = '#2ecc71';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, canvas.width, h);
+            ctx.restore();
+        }
+
+        function drawIntroScreen(dt = 1) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'INTRO_WAIT') {
+                const t = i18n[currentLang];
+                menuPulse += 0.05 * dt;
+                let alpha = Math.abs(Math.sin(menuPulse));
+                ctx.fillStyle = "#3498db"; ctx.font = "bold 16px Arial"; ctx.textAlign = "center";
+                ctx.fillText("SERSTICKGAME", canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`; ctx.font = "bold 14px Arial";
+                ctx.fillText(t.click_to_start_intro, canvas.width / 2, canvas.height / 2 + 30);
+                return;
+            }
+
+            introProgress += 0.00333 * dt;
+
+            if (introProgress < 0.35) {
+                let logoAlpha = Math.sin((introProgress / 0.35) * Math.PI);
+                ctx.fillStyle = `rgba(52, 152, 219, ${logoAlpha})`; ctx.font = "bold 22px Arial"; ctx.textAlign = "center";
+                ctx.shadowColor = "#3498db"; ctx.shadowBlur = 15; ctx.fillText("SERSTICKGAME", canvas.width / 2, canvas.height / 2 - 10);
+                ctx.font = "12px Arial"; ctx.fillStyle = `rgba(255, 255, 255, ${logoAlpha})`;
+                ctx.fillText("PRESENTS", canvas.width / 2, canvas.height / 2 + 15); ctx.shadowBlur = 0;
+            } 
+            else {
+                let boomProgress = (introProgress - 0.35) / 0.65;
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                let scale = 0.4 + (boomProgress * 0.8);
+                if (scale > 1.2) scale = 1.2; ctx.scale(scale, scale);
+                let alpha = Math.min(1, boomProgress * 2);
+                ctx.shadowColor = "#ff0055"; ctx.shadowBlur = 25;
+                ctx.fillStyle = `rgba(255, 0, 85, ${alpha})`; ctx.font = "900 36px Arial"; ctx.textAlign = "center";
+                ctx.fillText("TIKTAK BOOM", 0, 0);
+                ctx.shadowColor = "#ffcc00"; ctx.shadowBlur = 10;
+                ctx.fillStyle = `rgba(255, 204, 0, ${alpha})`; ctx.font = "bold 12px Arial";
+                ctx.fillText("— ARCADE RACER —", 0, 25); ctx.restore();
+                if (boomProgress > 0.1 && Math.random() < 0.3) {
+                    particles.push({ x: canvas.width / 2 + (Math.random() - 0.5) * 200, y: canvas.height / 2 + (Math.random() - 0.5) * 100, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2, size: Math.random() * 4 + 2, color: Math.random() < 0.5 ? '#ff0055' : '#ffcc00', alpha: 1 });
+                }
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= 0.01 * dt; ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, p.alpha); ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); if (p.alpha <= 0) particles.splice(i, 1);
+                }
+                ctx.globalAlpha = 1;
+            }
+            if (introProgress >= 1.0) { gameState = 'MENU'; particles = []; }
+        }
+
+        function drawStartMenu(dt = 1) {
+            const t = i18n[currentLang];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#15151e'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#ff0055"; ctx.shadowColor = "#ff0055"; ctx.shadowBlur = 15;
+            ctx.font = "bold 32px Arial"; ctx.textAlign = "center"; ctx.fillText("TIKTAK BOOM", canvas.width / 2, 80); ctx.shadowBlur = 0;
+
+            menuPulse += 0.05 * dt;
+            let alpha = Math.abs(Math.sin(menuPulse));
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`; ctx.font = "bold 16px Arial";
+            ctx.fillText(t.menu_hint1, canvas.width / 2, canvas.height / 2);
+            ctx.fillStyle = "#3498db"; ctx.font = "13px Arial";
+            ctx.fillText(t.menu_hint2, canvas.width / 2, canvas.height / 2 + 30);
+        }
+
+        let lineOffset = 0;
+        let lastFrameTime = 0;
+
+        function gameLoop(now) {
+            if (typeof now !== 'number') now = performance.now();
+            let dt = lastFrameTime ? (now - lastFrameTime) / (1000 / 60) : 1;
+            lastFrameTime = now;
+            if (!Number.isFinite(dt) || dt <= 0) dt = 1;
+            if (dt > 3) dt = 3; 
+
+            if (gameState === 'INTRO_WAIT' || gameState === 'INTRO_ANIM') {
+                drawIntroScreen(dt); requestAnimationFrame(gameLoop); return;
+            }
+            if (gameState === 'MENU' || gameState === 'RULES' || gameState === 'GARAGE' || gameState === 'LEVEL_SELECT' || gameState === 'PAUSED' || gameState === 'WIN') {
+                if (gameState === 'MENU') drawStartMenu(dt);
+                requestAnimationFrame(gameLoop); return;
+            }
+
+            if (gameState === 'GAMEOVER') {
+                updateEngineSound(0, true); const t = i18n[currentLang];
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= 0.02 * dt; ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, p.alpha); ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); if (p.alpha <= 0) particles.splice(i, 1);
+                }
+                ctx.globalAlpha = 1; ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#ff0055"; ctx.font = "bold 38px Arial"; ctx.textAlign = "center"; ctx.fillText("TIKTAK BOOM!", canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillStyle = "white"; ctx.font = "16px Arial"; ctx.fillText(t.play_again, canvas.width / 2, canvas.height / 2 + 30);
+                requestAnimationFrame(gameLoop); return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Courbe de difficulté progressive basée sur le niveau actuel
+            let maxSpeed = baseMaxSpeed + (currentLevel * 0.07);
+            if (boostTimer > 0) { maxSpeed += 5; boostTimer -= dt; }
+
+            if (isPressing && essence > 0) {
+                currentSpeed += 0.2 * dt; if (currentSpeed > maxSpeed) currentSpeed = maxSpeed;
+                // L'essence se vide de plus en plus vite selon le niveau
+                essence -= (0.07 + (currentLevel * 0.002)) * dt; 
+            } else {
+                if (currentSpeed > 2) {
+                    particles.push({ x: car.x + (Math.random() < 0.5 ? 6 : car.width - 6), y: car.y + car.height - 5, vx: (Math.random() - 0.5) * 1.5, vy: currentSpeed * 0.3, size: Math.random() * 5 + 3, color: '#888899', alpha: 0.5 });
+                }
+                currentSpeed -= 0.15 * dt; if (currentSpeed < 0) currentSpeed = 0;
+            }
+
+            if (currentSpeed <= 0) {
+                stoppedTimer += dt;
+                if (stoppedTimer >= IDLE_LIMIT) { triggerGameOver(); requestAnimationFrame(gameLoop); return; }
+            } else {
+                stoppedTimer = 0;
+            }
+
+            if (boostTimer > 0 && currentSpeed > 0) {
+                for (let i = 0; i < 3; i++) {
+                    particles.push({ x: car.x + car.width / 2 + (Math.random() * 16 - 8), y: car.y + car.height - 2, vx: (Math.random() - 0.5) * 2, vy: Math.random() * 4 + 3, size: Math.random() * 6 + 3, color: Math.random() < 0.5 ? '#00ffff' : '#00ff66', alpha: 0.9 });
+                }
+            }
+
+            updateEngineSound(currentSpeed, false);
+
+            lineOffset += currentSpeed * dt;
+            if (lineOffset > 40) lineOffset = 0;
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 4; ctx.setLineDash([20, 20]); ctx.lineDashOffset = -lineOffset; ctx.beginPath(); ctx.moveTo(canvas.width / 2, 0); ctx.lineTo(canvas.width / 2, canvas.height); ctx.stroke();
+            ctx.setLineDash([]);
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= 0.04 * dt; ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, p.alpha); ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); if (p.alpha <= 0) particles.splice(i, 1);
+            }
+            ctx.globalAlpha = 1;
+
+            const essenceShown = Math.max(0, Math.floor(essence));
+            if (essenceShown !== lastEssenceShown) {
+                lastEssenceShown = essenceShown;
+                document.getElementById('essence-text').innerText = essenceShown;
+            }
+
+            if (currentSpeed > 0) {
+                distanceTravelled += (currentSpeed * dt) / 200;
+
+                if (distanceTravelled >= TARGET_DISTANCE && finishLine === null) {
+                    finishLine = -60;
+                }
+
+                if (finishLine === null) {
+                    // Difficulté croissante : fréquence des obstacles augmente légèrement avec le niveau
+                    let obstacleChance = (0.011 + Math.min(0.055, currentLevel * 0.0018)) * dt;
+                    if (Math.random() < obstacleChance) {
+                        const obstacleColors = ['#e67e22', '#9b59b6', '#1abc9c', '#e74c3c', '#3498db', '#e84393', '#00b894'];
+                        let randomColor = obstacleColors[Math.floor(Math.random() * obstacleColors.length)];
+
+                        // Vitesse des obstacles qui s'accélère avec les niveaux
+                        let obsSpeed = 1.5 + (currentLevel * 0.03) + Math.random() * 1.5;
+
+                        // À partir du niveau 30, les obstacles commencent à glisser latéralement pour compliquer le jeu !
+                        let obsVx = currentLevel >= 30 ? (Math.random() - 0.5) * (0.4 + Math.min(1.5, (currentLevel - 30) * 0.015)) : 0;
+
+                        obstacles.push({ 
+                            x: Math.random() * (canvas.width - 38), 
+                            y: -70, 
+                            width: 38, 
+                            height: 65, 
+                            speed: obsSpeed,
+                            vx: obsVx,
+                            color: randomColor 
+                        });
+                    }
+                    if (Math.random() < 0.02 * dt) {
+                        let rand = Math.random(); let itemType, itemColor, itemLetter;
+                        if (rand < 0.45) { itemType = 'essence'; itemColor = '#3498db'; itemLetter = 'E'; }
+                        else if (rand < 0.70) { itemType = 'boost'; itemColor = '#2ecc71'; itemLetter = 'N'; }
+                        else if (rand < 0.85) { itemType = 'shield'; itemColor = '#f1c40f'; itemLetter = 'B'; }
+                        else { itemType = 'malus'; itemColor = '#e74c3c'; itemLetter = 'M'; }
+                        items.push({ x: Math.random() * (canvas.width - 30), y: -50, width: 30, height: 32, type: itemType, color: itemColor, letter: itemLetter });
+                    }
+                }
+            }
+
+            if (finishLine !== null) {
+                finishLine += currentSpeed * dt;
+                drawFinishLine(finishLine);
+                if (car.y <= finishLine + 40) {
+                    triggerWin();
+                    requestAnimationFrame(gameLoop); 
+                    return;
+                }
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                let relativeSpeed = currentSpeed - obs.speed;
+                if (currentSpeed === 0) obs.y -= obs.speed * dt;
+                else obs.y += Math.max(1, relativeSpeed) * dt;
+
+                // Mouvement latéral des obstacles pour les hauts niveaux
+                if (obs.vx) {
+                    obs.x += obs.vx * dt;
+                    if (obs.x < 0) { obs.x = 0; obs.vx *= -1; }
+                    if (obs.x + obs.width > canvas.width) { obs.x = canvas.width - obs.width; obs.vx *= -1; }
+                }
+
+                drawObstacleCar(obs.x, obs.y, obs.width, obs.height, obs.color);
+
+                if (checkCollision(car, obs)) {
+                    if (hasShield) { hasShield = false; playShieldBreakSound(); obstacles.splice(i, 1); }
+                    else { triggerGameOver(); }
+                } else if (obs.y > canvas.height + 100 || obs.y < -100) obstacles.splice(i, 1);
+            }
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i]; item.y += currentSpeed * dt;
+                drawRetroCanister(item.x, item.y, item.width, item.height, item.color, item.letter);
+                if (checkCollision(car, item)) {
+                    if (item.type === 'essence') { essence = Math.min(100, essence + 25); playCollectSound(523.25); }
+                    else if (item.type === 'boost') { boostTimer = 120; stoppedTimer = 0; playCollectSound(880); }
+                    else if (item.type === 'shield') { hasShield = true; playShieldSound(); }
+                    else if (item.type === 'malus') { currentSpeed = 1; playMalusSound(); }
+                    items.splice(i, 1); 
+                } else if (item.y > canvas.height) items.splice(i, 1);
+            }
+
+            if (essence <= 0) triggerGameOver();
+
+            let currentCarObj = carCatalog[equippedCarId] || carCatalog[0];
+            drawUniqueCar(ctx, car.x, car.y, car.width, car.height, currentCarObj.color, currentCarObj.tier);
+
+            if (hasShield) {
+                ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 3; ctx.shadowColor = "#f1c40f"; ctx.shadowBlur = 10;
+                ctx.beginPath(); ctx.arc(car.x + car.width / 2, car.y + car.height / 2, 44, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
+            }
+
+            drawDistanceHUD();
+            drawIdleWarning();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function drawIdleWarning() {
+            if (stoppedTimer < IDLE_WARN) return;
+            const t = i18n[currentLang];
+            const remaining = Math.max(0, Math.ceil((IDLE_LIMIT - stoppedTimer) / 60));
+            const blink = Math.abs(Math.sin(stoppedTimer * 0.12));
+
+            ctx.save();
+            ctx.textAlign = "center";
+            ctx.fillStyle = `rgba(255, 0, 85, ${0.45 + blink * 0.55})`;
+            ctx.shadowColor = "#ff0055";
+            ctx.shadowBlur = 12;
+            ctx.font = "bold 26px Arial";
+            ctx.fillText(t.idle_warn, canvas.width / 2, canvas.height / 2 - 20);
+            ctx.font = "bold 40px Arial";
+            ctx.fillText(remaining, canvas.width / 2, canvas.height / 2 + 25);
+            ctx.restore();
+        }
+
+        buildLevelGrid();
+        updateLanguageUI(); 
+        gameLoop();
+    </script>
+</body>
+</html>
