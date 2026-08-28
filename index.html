@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
 
-    <style>
+   <style>
         body {
             background-color: #111116;
             color: white;
@@ -26,22 +26,14 @@
         h2, h3 { margin: 5px 0; }
 
         #essence-text { color: #3498db; }
-    </style>
-            color: white;
-            text-align: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 10px;
-            overflow: hidden;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        #interface { margin-bottom: 10px; }
-        h2, h3 { margin: 5px 0; }
-        
-        #essence-text { color: #3498db; }
         #coins-text { color: #ffcc00; }
+
+        #game-container {
+            position: relative;
+            width: min(360px, calc(100vw - 20px));
+            aspect-ratio: 360 / 540;
+            margin: 0 auto;
+        }
 
         #game-container {
             position: relative;
